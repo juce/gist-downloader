@@ -5,6 +5,9 @@ function setup()
     parameter.action("Paste gist url", function()
         url = pasteboard.text
         parameter.action("Download", function()
+            if not url:match("/raw") then
+                url = url .. "/raw"
+            end
             http.request(url, function(data)
                 saveProjectTab("Main", data)
                 msg, c = "Success!", color(96, 181, 47, 255)
