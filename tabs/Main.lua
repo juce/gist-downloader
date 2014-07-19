@@ -1,4 +1,4 @@
--- Gist downloader
+-- Gist uploader/downloader
 
 local function iter(obj)
     if not obj.name then
@@ -23,6 +23,7 @@ end
 
 function setup()
     url, c = "", color(203, 209, 60, 255)
+    -- Download gist via link in pasteboard
     parameter.action("Paste gist url", function()
         url = pasteboard.text
         parameter.action("Download", function()
@@ -47,6 +48,25 @@ function setup()
                 end)
             end)
         end)
+    end)
+    -- Upload data from pasteboard to gist
+    parameter.action("Upload new gist", function()
+        data = pasteboard.text
+        http.request('http://gist-proxy.aws.mapote.com:8888/gists', function(data)
+            msg, c = "Success!\n" .. data, color(96, 181, 47, 255)
+            parameter.action("Copy link", function()
+                pasteboard.copy(data)
+                parameter.action("Quit", function()
+                    close()
+                end)
+            end)
+        end, function(err)
+            msg, c = err, color(177, 49, 49, 255)
+            parameter.action("Quit", function()
+                close()
+            end)
+        end,
+        { method = 'POST' })
     end)
 end
 
