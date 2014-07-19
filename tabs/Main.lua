@@ -26,6 +26,7 @@ function setup()
     -- Download gist via link in pasteboard
     parameter.action("Paste gist url", function()
         url = pasteboard.text
+        parameter.clear()
         parameter.action("Download", function()
             if not url:match("/raw") then
                 url = url .. "/raw"
@@ -52,10 +53,11 @@ function setup()
     -- Upload data from pasteboard to gist
     parameter.action("Upload new gist", function()
         data = pasteboard.text
-        http.request('http://gist-proxy.aws.mapote.com:8888/gists', function(data)
-            msg, c = "Success!\n" .. data, color(96, 181, 47, 255)
+        parameter.clear()
+        http.request('http://gist-proxy.aws.mapote.com:8888/gists', function(link)
+            msg, c = "Success!\n" .. link, color(96, 181, 47, 255)
             parameter.action("Copy link", function()
-                pasteboard.copy(data)
+                pasteboard.copy(link)
                 parameter.action("Quit", function()
                     close()
                 end)
@@ -66,7 +68,7 @@ function setup()
                 close()
             end)
         end,
-        { method = 'POST' })
+        { method = 'POST', data = data })
     end)
 end
 
