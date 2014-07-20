@@ -1,4 +1,5 @@
 -- Gist uploader/downloader
+-- v1.0 by juce
 
 local function iter(obj)
     if not obj.name then
@@ -8,10 +9,10 @@ local function iter(obj)
     local name, pos = obj.name, obj.pos
     local s, e, next = data:find("\n[-][-]# ([%w_]+)[^\n]*\n.", pos)
     obj.name, obj.pos = next, e
-    return name, data:sub(pos, s)
+    return name, data:sub(pos, s and s-1 or nil)
 end
 
-function tabs(data)
+local function tabs(data)
     local s, e, name = data:find("^%s*[-][-]# ([%w_]+)[^\n]*\n.")
     local obj = {
         pos = e or 1, 
@@ -22,12 +23,18 @@ function tabs(data)
 end
 
 function setup()
-    url, c = "", color(203, 209, 60, 255)
+    colors = {
+        red = color(177, 49, 49, 255),
+        yellow = color(203, 209, 60, 255),
+        green = color(96, 181, 47, 255)
+    }
+    url, c = "", colors.yellow
+    
     -- Download gist via link in pasteboard
-    parameter.action("Paste gist url", function()
+    parameter.action("DOWNLOAD: Paste gist link", function()
         url = pasteboard.text
         parameter.clear()
-        parameter.action("Download", function()
+        parameter.action("Download gist", function()
             if not url:match("/raw") then
                 url = url .. "/raw"
             end
@@ -37,25 +44,26 @@ function setup()
                     for tabname,tabdata in tabs(data) do
                         saveProjectTab(tabname, tabdata)
                     end
-                    msg, c = "Success!", color(96, 181, 47, 255)
+                    msg, c = "Success!", colors.green
                     parameter.action("Quit", function()
                         close()
                     end)
                 end)
             end, function(err)
-                msg, c = err, color(177, 49, 49, 255)
+                msg, c = err, colors.red
                 parameter.action("Quit", function()
                     close()
                 end)
             end)
         end)
     end)
+    
     -- Upload data from pasteboard to gist
-    parameter.action("Upload new gist", function()
+    parameter.action("UPLOAD: Create new gist", function()
         data = pasteboard.text
         parameter.clear()
         http.request('http://gist-proxy.aws.mapote.com:8888/gists', function(link)
-            msg, c = "Success!\n" .. link, color(96, 181, 47, 255)
+            msg, c = "Success!\n" .. link, colors.green
             parameter.action("Copy link", function()
                 pasteboard.copy(link)
                 parameter.action("Quit", function()
@@ -63,7 +71,7 @@ function setup()
                 end)
             end)
         end, function(err)
-            msg, c = err, color(177, 49, 49, 255)
+            msg, c = err, colors.red
             parameter.action("Quit", function()
                 close()
             end)
@@ -83,4 +91,3 @@ function draw()
         text(url, WIDTH/2, HEIGHT/2)
     end
 end
-
