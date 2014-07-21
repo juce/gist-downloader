@@ -1,5 +1,5 @@
 -- Gist uploader/downloader
--- v2.0 by juce, Jmv38 and HugoVitalyProtago
+-- v2.0 by juce, Jmv38 and HyroVitalyProtago
 
 local function iter(obj)
     if not obj.name then
@@ -24,20 +24,26 @@ end
 
 function saveLink(link)
     local name = "myGists"
-    local tab = readProjectTab(name) or ""
+    local tab = ""
+    for i,v in ipairs(listProjectTabs()) do
+        if name == v then tab = readProjectTab(v) end
+    end
     tab = tab .. "-- " .. link .. "  -- project: \n"
     saveProjectTab(name,tab)
 end
 
-function loadDkjson()
+function getDkjson(cb)
     if not readGlobalData("Dkjson") then
-        status, msg = "", "Loading dkjson..."
+        status, msg = "", "Downloading dkjson..."
         http.request("https://gist.githubusercontent.com/HyroVitalyProtago/5965767/raw/73facb82eda4c92393c51535f8dd08728e25555d/Dkjson.lua",
             function(data)
                 saveGlobalData("Dkjson", data)
+                msg = ""
+                cb()
             end)
+    else
+        cb()
     end
-    assert(loadstring(readGlobalData("Dkjson")))()
 end
 
 function setup()
@@ -47,10 +53,18 @@ function setup()
         green = color(96, 181, 47, 255)
     }
     url, c = "", colors.yellow
+    
+    -- load dkjson library (download, if necessary)
+    getDkjson(function()
+        assert(loadstring(readGlobalData("Dkjson")))()
+        assert(json.encode)
+        assert(json.decode)
+        -- display button menu
+        menu()
+    end)
+end
 
-    -- load dkjson library (download, if needed)
-    loadDkjson()
-
+function menu()
     -- Download gist via link in pasteboard
     parameter.action("DOWNLOAD: Paste gist link", function()
         url = pasteboard.text
@@ -86,16 +100,22 @@ function setup()
             description = 'Gists Codea Upload',
             public = true,
             files = {
-                ['Project.lua'] = pasteboard.text
+                ['Project.lua'] = {
+                    content = pasteboard.text
+                }
             }
         }
         parameter.clear()
         msg = "Starting upload ..."
-        http.request('https://api.github.com/gists', function(link)
+        http.request('https://api.github.com/gists', function(res)
+            local link = "https://gist.github.com/anonymous/" .. json.decode(res).id
             msg, c = "Success!\n" .. link, colors.green
             pasteboard.copy(link)
             saveLink(link)
             print("link copied in the pasteboard and in tab myGists")
+            parameter.action("View gist", function()
+                openURL(link, true)
+            end)
             parameter.action("Quit", function()
                 close()
             end)
