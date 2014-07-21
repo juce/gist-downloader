@@ -35,7 +35,9 @@ end
 function getDkjson(cb)
     if not readGlobalData("Dkjson") then
         status, msg = "", "Downloading dkjson..."
-        http.request("https://gist.githubusercontent.com/HyroVitalyProtago/5965767/raw/73facb82eda4c92393c51535f8dd08728e25555d/Dkjson.lua",
+        http.request("https://gist.githubusercontent.com" ..
+            "/HyroVitalyProtago/5965767/raw/" ..
+            "73facb82eda4c92393c51535f8dd08728e25555d/Dkjson.lua",
             function(data)
                 saveGlobalData("Dkjson", data)
                 msg = ""
