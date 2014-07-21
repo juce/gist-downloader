@@ -1,5 +1,5 @@
 -- Gist uploader/downloader
--- v1.0 by juce
+-- v2.0 by juce, Jmv38 and HugoVitalyProtago
 
 local function iter(obj)
     if not obj.name then
@@ -22,6 +22,24 @@ local function tabs(data)
     return iter, obj
 end
 
+function saveLink(link)
+    local name = "myGists"
+    local tab = readProjectTab(name) or ""
+    tab = tab .. "-- " .. link .. "  -- project: \n"
+    saveProjectTab(name,tab)
+end
+
+function loadDkjson()
+    if not readGlobalData("Dkjson") then
+        status, msg = "", "Loading dkjson..."
+        http.request("https://gist.githubusercontent.com/HyroVitalyProtago/5965767/raw/73facb82eda4c92393c51535f8dd08728e25555d/Dkjson.lua",
+            function(data)
+                saveGlobalData("Dkjson", data)
+            end)
+    end
+    assert(loadstring(readGlobalData("Dkjson")))()
+end
+
 function setup()
     colors = {
         red = color(177, 49, 49, 255),
@@ -29,7 +47,10 @@ function setup()
         green = color(96, 181, 47, 255)
     }
     url, c = "", colors.yellow
-    
+
+    -- load dkjson library (download, if needed)
+    loadDkjson()
+
     -- Download gist via link in pasteboard
     parameter.action("DOWNLOAD: Paste gist link", function()
         url = pasteboard.text
@@ -41,6 +62,7 @@ function setup()
             http.request(url, function(data)
                 msg = "Downloaded. Splitting into tabs ..."
                 tween.delay(1, function()
+                    saveProjectTab("myGists", nil)
                     for tabname,tabdata in tabs(data) do
                         saveProjectTab(tabname, tabdata)
                     end
@@ -57,18 +79,25 @@ function setup()
             end)
         end)
     end)
-    
+
     -- Upload data from pasteboard to gist
     parameter.action("UPLOAD: Create new gist", function()
-        data = pasteboard.text
+        local data = {
+            description = 'Gists Codea Upload',
+            public = true,
+            files = {
+                ['Project.lua'] = pasteboard.text
+            }
+        }
         parameter.clear()
-        http.request('http://gist-proxy.aws.mapote.com:8888/gists', function(link)
+        msg = "Starting upload ..."
+        http.request('https://api.github.com/gists', function(link)
             msg, c = "Success!\n" .. link, colors.green
-            parameter.action("Copy link", function()
-                pasteboard.copy(link)
-                parameter.action("Quit", function()
-                    close()
-                end)
+            pasteboard.copy(link)
+            saveLink(link)
+            print("link copied in the pasteboard and in tab myGists")
+            parameter.action("Quit", function()
+                close()
             end)
         end, function(err)
             msg, c = err, colors.red
@@ -76,8 +105,8 @@ function setup()
                 close()
             end)
         end,
-        { method = 'POST', data = data })
-    end)
+        { method = 'POST', data = json.encode(data) })
+    end)    
 end
 
 function draw()
