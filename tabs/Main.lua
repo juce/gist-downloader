@@ -66,36 +66,27 @@ function setup()
     end)
 end
 
-function splitCode(data)
-    tween.delay(1, function()
-        saveProjectTab("myGists", nil)
-        for tabname,tabdata in tabs(data) do
-            saveProjectTab(tabname, tabdata)
-        end
-        msg, c = "Success!", colors.green
-        parameter.action("Quit", function()
-            close()
-        end)
-    end)
-end
-
 function menu()
     -- Download gist via link in pasteboard
-    parameter.action("DOWNLOAD: Paste link/code", function()
-        local v = pasteboard.text or ""
+    parameter.action("DOWNLOAD: Paste gist link", function()
+        url = pasteboard.text
         parameter.clear()
-        if not v:match("^https?://") then
-            msg = "Splitting pasted code into tabs ..."
-            return splitCode(v)
-        end
-        url = v
         parameter.action("Download gist", function()
             if not url:match("/raw") then
                 url = url .. "/raw"
             end
             http.request(url, function(data)
                 msg = "Downloaded. Splitting into tabs ..."
-                splitCode(data)
+                tween.delay(1, function()
+                    saveProjectTab("myGists", nil)
+                    for tabname,tabdata in tabs(data) do
+                        saveProjectTab(tabname, tabdata)
+                    end
+                    msg, c = "Success!", colors.green
+                    parameter.action("Quit", function()
+                        close()
+                    end)
+                end)
             end, function(err)
                 msg, c = err, colors.red
                 parameter.action("Quit", function()
