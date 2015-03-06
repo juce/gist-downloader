@@ -33,7 +33,7 @@ function setup()
         yellow = color(203, 209, 60, 255),
         green = color(96, 181, 47, 255)
     }
-    url, c = "", colors.yellow
+    c = colors.yellow
     
     -- load dkjson library (download, if necessary)
     getDkjson(function()
@@ -108,7 +108,5 @@ function draw()
     fontSize(35)
     if msg then
         text(msg, WIDTH/2, HEIGHT/2)
-    else
-        text(url, WIDTH/2, HEIGHT/2)
     end
 end
