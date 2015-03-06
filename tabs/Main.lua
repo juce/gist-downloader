@@ -1,26 +1,5 @@
 -- Gist uploader/downloader
--- v2.0 by juce, Jmv38 and HyroVitalyProtago
-
-local function iter(obj)
-    if not obj.name then
-        return
-    end
-    local data = obj.data
-    local name, pos = obj.name, obj.pos
-    local s, e, next = data:find("\n[-][-]# ([%w_]+)[^\n]*\n.", pos)
-    obj.name, obj.pos = next, e
-    return name, data:sub(pos, s and s-1 or nil)
-end
-
-local function tabs(data)
-    local s, e, name = data:find("^%s*[-][-]# ([%w_]+)[^\n]*\n.")
-    local obj = {
-        pos = e or 1, 
-        name = name or "Main",
-        data = data,
-    }
-    return iter, obj
-end
+-- v3.0 by juce, Jmv38 and HyroVitalyProtago
 
 function saveLink(link)
     local name = "myGists"
@@ -66,41 +45,29 @@ function setup()
     end)
 end
 
-function splitCode(data)
-    tween.delay(1, function()
-        saveProjectTab("myGists", nil)
-        for tabname,tabdata in tabs(data) do
-            saveProjectTab(tabname, tabdata)
-        end
-        msg, c = "Success!", colors.green
-        parameter.action("Quit", function()
-            close()
-        end)
-    end)
-end
-
 function menu()
     -- Download gist via link in pasteboard
-    parameter.action("DOWNLOAD: Paste link/code", function()
-        local v = pasteboard.text or ""
+    parameter.action("DOWNLOAD: Paste link", function()
+        local url = pasteboard.text or ""
+        url = url:match("[^%s]+")
+        msg = #url>256 and url:sub(1,256).."..." or url
         parameter.clear()
-        if not v:match("^https?://") then
-            msg = "Splitting pasted code into tabs ..."
-            return splitCode(v)
-        end
-        url = v
         parameter.action("Download gist", function()
             if not url:match("/raw") then
                 url = url .. "/raw"
             end
+            msg = "Downloading ..."
             http.request(url, function(data)
-                msg = "Downloaded. Splitting into tabs ..."
-                splitCode(data)
+                pasteboard.copy(data)
+                msg = "Success!\nDownloaded and copied to pasteboard."
+                print("You can now close this project, then " ..
+                      "long-press 'Add New Project' button, and then " ..
+                      "choose 'Paste Into Project'")
+                c = colors.green
+                parameter.clear()
             end, function(err)
                 msg, c = err, colors.red
-                parameter.action("Quit", function()
-                    close()
-                end)
+                parameter.clear()
             end)
         end)
     end)
@@ -117,7 +84,7 @@ function menu()
             }
         }
         parameter.clear()
-        msg = "Starting upload ..."
+        msg = "Uploading ..."
         http.request('https://api.github.com/gists', function(res)
             local link = "https://gist.github.com/anonymous/" .. json.decode(res).id
             msg, c = "Success!\n" .. link, colors.green
@@ -127,14 +94,8 @@ function menu()
             parameter.action("View gist", function()
                 openURL(link, true)
             end)
-            parameter.action("Quit", function()
-                close()
-            end)
         end, function(err)
             msg, c = err, colors.red
-            parameter.action("Quit", function()
-                close()
-            end)
         end,
         { method = 'POST', data = json.encode(data) })
     end)    
